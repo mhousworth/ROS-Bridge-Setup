@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# Check if ROS base is installed
+dpkg -s ros-melodic-ros-base > /dev/null
+if [ $? -eq 1 ]; then
+  echo "Package:ros-melodic-rox-base is missing"
+  exit 1
+fi
+
+#Create/Setup source package
+mkdir src
+cd src
+
+catkin_create_pkg robot_gui_bridge rosbridge_server --rosdistro melodic
+
+#If catkin_create_pkg fails at this point, ros was not configured
+#Necessary commands will be printed by catkin_create_pkg output
+if [ $? -eq 1 ]; then
+  exit 1
+fi
+
+cd ..
+rosdep install --from-paths src --ignore-src -r -y --rosdistro melodic
+
+#Create ROS launch File
+mkdir src/robot_gui_bridge/launch
+touch src/robot_gui_bridge/launch/websocket.launch
+echo -ne "<launch>\n  <include file=\"\$(find rosbridge_server)/launch/rosbridge_websocket.launch\">\n    <arg name=\"port\" value=\"9090\"/>\n  </include>\n</launch>" > src/robot_gui_bridge/launch/websocket.launch
+
+#Source ROS version and build
+source /opt/ros/melodic/setup.bash
+catkin_make
+
+# Setup complete
+echo -ne "To start the ros bridge run these two lines:\n\tsource devel/setup.bash\n\troslaunch robot_gui_bridge websocket.launch\n"
